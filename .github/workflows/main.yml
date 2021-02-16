@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on:  macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: packer_cache
+          key:  sha256:968754a3e56d7f99ab19d313e7280a0c806278ba630c0a746bf26a473336c29c
+      - name: Run packer build
+        env:
+          VERSION:             1.5.8
+          ISO_CHECKSUM:        sha256:968754a3e56d7f99ab19d313e7280a0c806278ba630c0a746bf26a473336c29c
+          VAGRANT_CLOUD_TOKEN: ${{ secrets.VAGRANT_CLOUD_TOKEN }}
+        run: |
+          set -eux
+          VBoxManage -v
+          packer -v
+          packer build -only=virtualbox-iso \
+            -var version=$VERSION \
+            -var headless=true \
+            -var iso_url=https://github.com/rancher/os/releases/download/v$VERSION/rancheros.iso \
+            -var iso_checksum=$ISO_CHECKSUM \
+            -var box_tag=HirotakaKato/rancheros \
+            template.json
+          shasum -a 256 box/virtualbox/*.box
